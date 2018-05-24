@@ -17,10 +17,20 @@ function set(id, start, length, noacc) {
 
 chrome.tabs.getSelected(null, function (tab) {
     chrome.storage.local.get('cache', function(data) {
-        var t = data.cache['tab' + tab.id],
-        start = t.redirectStart == 0 ?t.fetchStart : t.redirectStart;
+        var t = data.cache['tab' + tab.id]
 
+        start = t.redirectStart === 0 ? t.fetchStart : t.redirectStart;
         total = t.loadEventEnd - start;
+
+        let previousTime = +localStorage.getItem('previousTime')
+        let accumulativeTime = +localStorage.getItem(`accumulativeTimeFor-${getDomainFromUrl(tab.url)}`) || 0
+        if(total !== previousTime) {
+            localStorage.setItem('previousTime', total)
+            localStorage.setItem(`accumulativeTimeFor-${getDomainFromUrl(tab.url)}`, total + accumulativeTime)
+        }
+        if(!previousTime) {
+            localStorage.setItem(`accumulativeTimeFor-${getDomainFromUrl(tab.url)}`, total + accumulativeTime)
+        }
 
         // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html#processing-model
         set('redirect', 0, t.redirectEnd - t.redirectStart);
@@ -33,5 +43,17 @@ chrome.tabs.getSelected(null, function (tab) {
         set('contentLoaded', t.domContentLoadedEventStart - start,
             t.domContentLoadedEventEnd - t.domContentLoadedEventStart, true);
         set('load', t.loadEventStart - start, t.loadEventEnd - t.loadEventStart);
+
+        document.getElementById('accumulativeTotal').innerHTML = time(accumulativeTime)
     });
 });
+
+function getDomainFromUrl(url) {
+    var a = document.createElement('a')
+    a.setAttribute('href', url);
+    return a.hostname;
+}
+
+function time(ms) {
+    return new Date(ms).toISOString().slice(11, -1);
+}

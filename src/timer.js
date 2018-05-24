@@ -24,7 +24,7 @@
                     }
                 }
 
-                chrome[roe].sendMessage({time: time, timing: timing});
+                chrome[roe].sendMessage( {time,timing});
             }
         }, 0);
     }
